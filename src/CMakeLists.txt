@@ -1,0 +1,1 @@
+add_executable(chip8Emu main.cpp)
