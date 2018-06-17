@@ -11,7 +11,9 @@ uint16_t toShort(uint8_t msb, uint8_t lsb){
 std::vector<uint16_t> loadROM(char *filename){
     std::ifstream rom(filename, std::ios::binary);
     
-    if(rom.fails())
+    if(!rom){
+        std::cerr << "Error: No such file found" << std::endl;
+    }
 
     std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(rom)),(std::istreambuf_iterator<char>()));
     std::vector<uint16_t> opcodes;
@@ -20,8 +22,6 @@ std::vector<uint16_t> loadROM(char *filename){
         opcodes.push_back(toShort(*(1+it), *it));
         ++it;
     }
-
-    std::cout << opcodes.size() << std::endl;
 
     return opcodes;                        
 }
