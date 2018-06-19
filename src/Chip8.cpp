@@ -2,6 +2,7 @@
 
 Chip8::Chip8(char *filename){
     this->rom = this->loadROM(filename);
+    srand (time(NULL));    
 }
 
 uint16_t Chip8::toShort(uint8_t msb, uint8_t lsb){
@@ -35,7 +36,7 @@ void Chip8::handleOpcode(uint16_t opcode){
     if(opcode == 0x00EE){
         ret();
     }
-    
+
 }
 
 void Chip8::clearScreen(){
@@ -65,11 +66,11 @@ void Chip8::skipIf(uint16_t value){
 
     if(this->registers[(value & 0x0F00) >> 8] == (value & 0x00FF)){
         if(instruction == 3){
-            this->pc = value & 0x00FF;
+            this->pc++;
         }
     }
     else if(instruction == 4){
-        this->pc = value & 0x00FF;
+        this->pc++;
     }    
 }
 
@@ -78,11 +79,24 @@ void Chip8::skipIfReg(uint16_t value){
 
     if(this->registers[(value & 0x0F00) >> 8] == this->registers[(value & 0x00F0) >> 4]){
         if(instruction == 5){
-            this->pc = value & 0x00FF;
+            this->pc++;
         }
     }
     else if(instruction == 9){
-        this->pc = value & 0x00FF;
+        this->pc++;
+    }
+}
+
+void Chip8::skipIfKey(uint16_t value){
+    uint8_t instruction = (value & 0x00FF);
+
+    if(this->keyboard[this->registers[(value & 0x0F00) >> 8]]){
+        if(instruction == 0x009E){
+            this->pc++;
+        }
+    }
+    else if(instruction == 0x00A1){
+        this->pc++;
     }
 }
 
@@ -92,6 +106,10 @@ void Chip8::setRegister(uint16_t value){
 
 void Chip8::setI(uint16_t value){
     this->I = value & 0x0FFF;
+}
+
+void chip8:: addToI(uint16_t value){
+    this->I += this->registers[(value & 0x0F00) >> 8];
 }
 
 void Chip8::add(uint16_t value){
@@ -141,4 +159,32 @@ void Chip8::handleRegisterOperations(uint16_t value){
         default:
             break;
     }
+}
+
+void Chip8::randAnd(uint16_t value){
+    this->registers[(value & 0x0F00) >> 8] = (rand() % 255) & (value & 0x00FF);
+}
+
+//architectural decisions pending
+void Chip8::drawSprite(uint16_t value){
+    uint8_t xOri = (value & 0x0F00) >> 8;
+    uint8_t yOri = (value & 0x00F0) >> 4;
+    uint8_t height = (value & 0x000F);
+}
+
+void Chip8::getDelay(uint16_t value){
+    this->registers[(value & 0x0F00) >> 8] = this->delay;
+}
+
+//question
+void Chip8::getKeyPress(uint16_t value){
+    ;
+}
+
+void Chip8::setDelay(uint16_t value){
+    this->delay = this->registers[(value & 0x0F00) >> 8]
+}
+
+void Chip8::setDelay(uint16_t value){
+    this->sound = this->registers[(value & 0x0F00) >> 8]
 }

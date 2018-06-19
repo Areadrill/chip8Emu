@@ -5,12 +5,14 @@
 #include <iostream>
 #include <map>
 #include <stack>
+#include <ctime>
 
 class Chip8{
     private:
         std::vector<uint16_t> rom;
 
         uint8_t registers[16];
+        uint8_t sound, delay;
         uint16_t I;
         uint16_t pc;
 
