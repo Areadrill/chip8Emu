@@ -1,15 +1,57 @@
 #include "Chip8.hpp"
 
+typedef  void (Chip8::*handlerFn)(uint16_t);
+
 Chip8::Chip8(char *filename){
     this->rom = this->loadROM(filename);
+    uint8_t* ptr = &(this->rom)[0];
+    this->clearScreen();
+    this->I = 0;
+    this->pc = 0x200;
+
+    std::fill(this->registers, this->registers+16, 0);
+    std::copy(ptr, ptr + this->rom.size(), this->memory + 512);
+    std::copy(this->fontset, this->fontset + 80, this->memory);
+
+    this->handlerMap.emplace(1, &Chip8::goTo);
+    this->handlerMap.emplace(2, &Chip8::call);
+    this->handlerMap.emplace(3, &Chip8::skipIf);
+    this->handlerMap.emplace(4, &Chip8::skipIf);
+    this->handlerMap.emplace(5, &Chip8::skipIfReg);
+    this->handlerMap.emplace(6, &Chip8::setRegister);
+    this->handlerMap.emplace(7, &Chip8::add);
+    this->handlerMap.emplace(8, &Chip8::handleRegisterOperations);
+    this->handlerMap.emplace(9, &Chip8::skipIfReg);
+    this->handlerMap.emplace(10, &Chip8::setI);
+    this->handlerMap.emplace(11, &Chip8::goTo);
+    this->handlerMap.emplace(12, &Chip8::randAnd);
+    this->handlerMap.emplace(13, &Chip8::drawSprite);
+    this->handlerMap.emplace(14, &Chip8::skipIfKey);
+    //missing some opcodes
+
     srand (time(NULL));    
+}
+
+void Chip8::step(){
+    this->handleOpcode(this->toShort(this->memory[pc+1], this->memory[pc]));
+
+    if(this->delay){
+        this->delay--;
+    }
+    if(this->sound){
+        this->sound--;
+    }
+    else{
+        ; //make a sound
+    }
+    
 }
 
 uint16_t Chip8::toShort(uint8_t msb, uint8_t lsb){
     return msb << 8 | lsb;
 }
 
-std::vector<uint16_t> Chip8::loadROM(char *filename){
+std::vector<uint8_t> Chip8::loadROM(char *filename){
     std::ifstream rom(filename, std::ios::binary);
     
     if(!rom){
@@ -17,14 +59,14 @@ std::vector<uint16_t> Chip8::loadROM(char *filename){
     }
 
     std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(rom)),(std::istreambuf_iterator<char>()));
-    std::vector<uint16_t> opcodes;
+    /*std::vector<uint16_t> opcodes;
 
     for(std::vector<uint8_t>::iterator it = bytes.begin() ; it != bytes.end(); ++it){
         opcodes.push_back(toShort(*(1+it), *it));
         ++it;
-    }
+    }*/
 
-    return opcodes;                        
+    return bytes;                        
 }
 
 
@@ -37,6 +79,8 @@ void Chip8::handleOpcode(uint16_t opcode){
         ret();
     }
 
+    handlerFn fn = this->handlerMap.at((opcode & 0xF000) >> 12);
+    (this->*fn)(opcode);
 }
 
 void Chip8::clearScreen(){
@@ -53,7 +97,7 @@ void Chip8::ret(){
 }
 
 void Chip8::goTo(uint16_t value){
-    this->pc = value & 0x0FFF + ((value & 0xF000) >> 12 == 1)? 0 : this->registers[0];
+    this->pc = value & 0x0FFF + ((value & 0xF000) >> 11 == 1)? 0 : this->registers[0];
 }
 
 void Chip8::call(uint16_t value){
@@ -108,7 +152,7 @@ void Chip8::setI(uint16_t value){
     this->I = value & 0x0FFF;
 }
 
-void chip8:: addToI(uint16_t value){
+void Chip8::addToI(uint16_t value){
     this->I += this->registers[(value & 0x0F00) >> 8];
 }
 
@@ -165,7 +209,6 @@ void Chip8::randAnd(uint16_t value){
     this->registers[(value & 0x0F00) >> 8] = (rand() % 255) & (value & 0x00FF);
 }
 
-//architectural decisions pending
 void Chip8::drawSprite(uint16_t value){
     uint8_t xOri = (value & 0x0F00) >> 8;
     uint8_t yOri = (value & 0x00F0) >> 4;
@@ -176,15 +219,14 @@ void Chip8::getDelay(uint16_t value){
     this->registers[(value & 0x0F00) >> 8] = this->delay;
 }
 
-//question
 void Chip8::getKeyPress(uint16_t value){
     ;
 }
 
 void Chip8::setDelay(uint16_t value){
-    this->delay = this->registers[(value & 0x0F00) >> 8]
+    this->delay = this->registers[(value & 0x0F00) >> 8];
 }
 
-void Chip8::setDelay(uint16_t value){
-    this->sound = this->registers[(value & 0x0F00) >> 8]
+void Chip8::setSound(uint16_t value){
+    this->sound = this->registers[(value & 0x0F00) >> 8];
 }
