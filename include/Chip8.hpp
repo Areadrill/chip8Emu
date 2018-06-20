@@ -8,9 +8,12 @@
 #include <stack>
 #include <ctime>
 #include <cstring>
+#include <cmath>
 
 class Chip8{
     private:
+
+        const uint16_t pcOpcodes[3] = {0x00EE, 0x1000, 0x2000};
 
         const uint8_t fontset[80] = {
             0xF0, 0x90, 0x90, 0x90, 0xF0,
@@ -42,15 +45,14 @@ class Chip8{
 
         std::stack<uint16_t> addrStack[24];
 
-        bool screen[32][64];
+        bool **screen;
         bool keyboard[16];
 
         std::map<uint16_t, void (Chip8::*)(uint16_t)> handlerMap;
 
         uint16_t toShort(uint8_t, uint8_t);
         std::vector<uint8_t> loadROM(char*);
-        void step();
-        void handleOpcode(uint16_t);
+        bool handleOpcode(uint16_t);
         void clearScreen();
         void ret();
         void goTo(uint16_t);
@@ -72,4 +74,6 @@ class Chip8{
 
     public:
         Chip8(char*);
+        bool** getScreen();
+        void step();
 };

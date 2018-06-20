@@ -5,6 +5,12 @@ typedef  void (Chip8::*handlerFn)(uint16_t);
 Chip8::Chip8(char *filename){
     this->rom = this->loadROM(filename);
     uint8_t* ptr = &(this->rom)[0];
+
+    this->screen = new bool*[32];
+    for (int i = 0; i < 32; ++i){
+        this->screen[i] = new bool[64];
+    }
+
     this->clearScreen();
     this->I = 0;
     this->pc = 0x200;
@@ -33,7 +39,9 @@ Chip8::Chip8(char *filename){
 }
 
 void Chip8::step(){
-    this->handleOpcode(this->toShort(this->memory[pc+1], this->memory[pc]));
+    if(this->handleOpcode(this->toShort(this->memory[pc], this->memory[pc+1]))){
+        this->pc += 2;
+    }
 
     if(this->delay){
         this->delay--;
@@ -69,18 +77,21 @@ std::vector<uint8_t> Chip8::loadROM(char *filename){
     return bytes;                        
 }
 
-
-void Chip8::handleOpcode(uint16_t opcode){
+bool Chip8::handleOpcode(uint16_t opcode){
     //special opcodes
     if(opcode == 0x00E0){
         clearScreen();
+        return true;
     }
     if(opcode == 0x00EE){
         ret();
+        return false;
     }
 
     handlerFn fn = this->handlerMap.at((opcode & 0xF000) >> 12);
     (this->*fn)(opcode);
+
+    return (std::find(std::begin(this->pcOpcodes), std::end(this->pcOpcodes), opcode) == std::end(this->pcOpcodes))? true : false;
 }
 
 void Chip8::clearScreen(){
@@ -110,11 +121,11 @@ void Chip8::skipIf(uint16_t value){
 
     if(this->registers[(value & 0x0F00) >> 8] == (value & 0x00FF)){
         if(instruction == 3){
-            this->pc++;
+            this->pc+=2;
         }
     }
     else if(instruction == 4){
-        this->pc++;
+        this->pc+=2;
     }    
 }
 
@@ -123,11 +134,11 @@ void Chip8::skipIfReg(uint16_t value){
 
     if(this->registers[(value & 0x0F00) >> 8] == this->registers[(value & 0x00F0) >> 4]){
         if(instruction == 5){
-            this->pc++;
+            this->pc+=2;
         }
     }
     else if(instruction == 9){
-        this->pc++;
+        this->pc+=2;
     }
 }
 
@@ -136,11 +147,11 @@ void Chip8::skipIfKey(uint16_t value){
 
     if(this->keyboard[this->registers[(value & 0x0F00) >> 8]]){
         if(instruction == 0x009E){
-            this->pc++;
+            this->pc+=2;
         }
     }
     else if(instruction == 0x00A1){
-        this->pc++;
+        this->pc+=2;
     }
 }
 
@@ -210,9 +221,26 @@ void Chip8::randAnd(uint16_t value){
 }
 
 void Chip8::drawSprite(uint16_t value){
-    uint8_t xOri = (value & 0x0F00) >> 8;
-    uint8_t yOri = (value & 0x00F0) >> 4;
+    uint8_t xOri = this->registers[(value & 0x0F00) >> 8];
+    uint8_t yOri = this->registers[(value & 0x00F0) >> 4];
     uint8_t height = (value & 0x000F);
+    bool collisionDetected = false;
+
+    for(uint8_t y = 0; y < height; y++){
+        uint8_t spriteLine = this->memory[this->I + y];
+        for(uint8_t x = 0; x < 8; x++){
+            bool oldPixel = this->screen[yOri + y][xOri + x];
+            this->screen[yOri + y][xOri + x] ^= (spriteLine & (uint8_t)pow(2, 8 - (x+1))) >> (8 - (x+1));
+
+            if(!collisionDetected && oldPixel && !this->screen[yOri + y][xOri + x]){
+                collisionDetected = true;
+            }
+        }
+    }
+
+    if(collisionDetected){
+        this->registers[15] = 1;
+    }
 }
 
 void Chip8::getDelay(uint16_t value){
@@ -229,4 +257,9 @@ void Chip8::setDelay(uint16_t value){
 
 void Chip8::setSound(uint16_t value){
     this->sound = this->registers[(value & 0x0F00) >> 8];
+}
+
+//getters
+bool** Chip8::getScreen(){
+    return this->screen;
 }
