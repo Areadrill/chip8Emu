@@ -33,7 +33,7 @@ Chip8::Chip8(char *filename){
     this->handlerMap.emplace(12, &Chip8::randAnd);
     this->handlerMap.emplace(13, &Chip8::drawSprite);
     this->handlerMap.emplace(14, &Chip8::skipIfKey);
-    //missing some opcodes
+    this->handlerMap.emplace(15, &Chip8::handlePeripheralOperations);
 
     srand (time(NULL));    
 }
@@ -257,6 +257,64 @@ void Chip8::setDelay(uint16_t value){
 
 void Chip8::setSound(uint16_t value){
     this->sound = this->registers[(value & 0x0F00) >> 8];
+}
+
+void Chip8::setSpriteAddr(uint16_t value){
+    this->setI(0xA << 12 | (this->registers[(value & 0x0F00) >> 8]*5));
+}
+
+void Chip8::setBCD(uint16_t value){
+    uint8_t val = this->registers[(value & 0x0F00) >> 8];
+
+    this->memory[this->I] = val/100;
+    this->memory[this->I+1] = (val % 100) / 10;
+    this->memory[this->I+2] = (val % 10);
+}
+
+void Chip8::regDump(uint16_t value){
+    for(uint8_t i = 0; i <= (value & 0x0F00); i++){
+        this->memory[this->I + i] = this->registers[i];
+    }
+}
+
+void Chip8::regLoad(uint16_t value){
+    for(uint8_t i = 0; i <= (value & 0x0F00); i++){
+       this->registers[i] = this->memory[this->I + i];
+    }
+}
+
+void Chip8::handlePeripheralOperations(uint16_t value){
+    switch(value & 0x00FF){
+        case 7:
+            this->getDelay(value);
+            break;
+        case 10:
+            this->getKeyPress(value);
+            break;
+        case 21:
+            this->setDelay(value);
+            break;
+        case 24:
+            this->setSound(value);
+            break;
+        case 31:
+            this->setI(value);
+            break;
+        case 41:
+            this->setSpriteAddr(value);
+            break;
+        case 51:
+            this->setBCD(value);
+            break;
+        case 85:
+            this->regDump(value);
+            break;
+        case 101:
+            this->regLoad(value);
+            break;
+        default:
+            break;
+    }
 }
 
 //getters

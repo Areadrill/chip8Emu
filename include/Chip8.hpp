@@ -67,10 +67,15 @@ class Chip8{
         void handleRegisterOperations(uint16_t);
         void randAnd(uint16_t);
         void drawSprite(uint16_t);
+        void handlePeripheralOperations(uint16_t);
         void getDelay(uint16_t);
         void getKeyPress(uint16_t);
         void setDelay(uint16_t);
         void setSound(uint16_t);
+        void setSpriteAddr(uint16_t);
+        void setBCD(uint16_t);
+        void regDump(uint16_t);
+        void regLoad(uint16_t);
 
     public:
         Chip8(char*);
