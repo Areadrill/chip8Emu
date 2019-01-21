@@ -8,8 +8,18 @@ int main(int argc, char **argv){
     interpreter.step();
     interpreter.step();
     interpreter.step();
+    interpreter.step(); 
+    interpreter.step();
+    interpreter.step(); 
+    interpreter.step();
+    
     interpreter.step();
     interpreter.step();
+    interpreter.step();
+    interpreter.step();
+    interpreter.step(); 
+    interpreter.step();
+    interpreter.step(); 
     interpreter.step();
 
     for(int i = 0; i < 32; i++){

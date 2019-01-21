@@ -13,7 +13,7 @@
 class Chip8{
     private:
 
-        const uint16_t pcOpcodes[3] = {0x00EE, 0x1000, 0x2000};
+        const uint16_t pcOpcodes[4] = {0x00EE, 0x1000, 0x2000, 0xB000};
 
         const uint8_t fontset[80] = {
             0xF0, 0x90, 0x90, 0x90, 0xF0,

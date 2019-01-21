@@ -78,6 +78,8 @@ std::vector<uint8_t> Chip8::loadROM(char *filename){
 }
 
 bool Chip8::handleOpcode(uint16_t opcode){
+    std::cout << "Next opcode is " << std::hex << opcode << std::endl;
+
     //special opcodes
     if(opcode == 0x00E0){
         clearScreen();
@@ -91,7 +93,7 @@ bool Chip8::handleOpcode(uint16_t opcode){
     handlerFn fn = this->handlerMap.at((opcode & 0xF000) >> 12);
     (this->*fn)(opcode);
 
-    return (std::find(std::begin(this->pcOpcodes), std::end(this->pcOpcodes), opcode) == std::end(this->pcOpcodes))? true : false;
+    return (std::find(std::begin(this->pcOpcodes), std::end(this->pcOpcodes), (opcode & 0xF000)) == std::end(this->pcOpcodes))? true : false;
 }
 
 void Chip8::clearScreen(){
@@ -112,6 +114,8 @@ void Chip8::goTo(uint16_t value){
 }
 
 void Chip8::call(uint16_t value){
+    std::cout << "Call routine at " << std::hex << (value & 0X0FFF) << std::endl;
+
     this->addrStack->push(this->pc);
     this->pc = value & 0x0FFF;
 }
@@ -156,10 +160,14 @@ void Chip8::skipIfKey(uint16_t value){
 }
 
 void Chip8::setRegister(uint16_t value){
+    std::cout << "Set register " << std::hex << ((value & 0x0F00) >> 8) << " to " << std::hex << (value & 0x00FF) << std::endl;
+
     this->registers[(value & 0x0F00) >> 8] = value & 0x00FF;
 }
 
 void Chip8::setI(uint16_t value){
+    std::cout << "Set I to " << std::hex << (value & 0x0FFF) << std::endl;
+
     this->I = value & 0x0FFF;
 }
 
@@ -248,7 +256,18 @@ void Chip8::getDelay(uint16_t value){
 }
 
 void Chip8::getKeyPress(uint16_t value){
-    ;
+    bool *currentKeyboard = this->keyboard;
+    bool keyboardChanged = false;
+
+    while(!keyboardChanged){
+        for(uint8_t i = 0; i < 16; i++){
+            if(this->keyboard[i] != currentKeyboard[i]){
+                keyboardChanged = true;
+                this->registers[(value & 0x0F00) >> 8] = i;
+            }
+        }
+    }
+    
 }
 
 void Chip8::setDelay(uint16_t value){
@@ -272,44 +291,44 @@ void Chip8::setBCD(uint16_t value){
 }
 
 void Chip8::regDump(uint16_t value){
-    for(uint8_t i = 0; i <= (value & 0x0F00); i++){
+    for(uint8_t i = 0; i <= (value & 0x0F00) >> 8; i++){
         this->memory[this->I + i] = this->registers[i];
     }
 }
 
 void Chip8::regLoad(uint16_t value){
-    for(uint8_t i = 0; i <= (value & 0x0F00); i++){
+    for(uint8_t i = 0; i <= (value & 0x0F00) >> 8; i++){
        this->registers[i] = this->memory[this->I + i];
     }
 }
 
 void Chip8::handlePeripheralOperations(uint16_t value){
     switch(value & 0x00FF){
-        case 7:
+        case 0x07:
             this->getDelay(value);
             break;
-        case 10:
+        case 0x0A:
             this->getKeyPress(value);
             break;
-        case 21:
+        case 0x15:
             this->setDelay(value);
             break;
-        case 24:
+        case 0x18:
             this->setSound(value);
             break;
-        case 31:
+        case 0x1E:
             this->setI(value);
             break;
-        case 41:
+        case 0x29:
             this->setSpriteAddr(value);
             break;
-        case 51:
+        case 0x33:
             this->setBCD(value);
             break;
-        case 85:
+        case 0x55:
             this->regDump(value);
             break;
-        case 101:
+        case 0x65:
             this->regLoad(value);
             break;
         default:
