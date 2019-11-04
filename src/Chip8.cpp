@@ -266,8 +266,7 @@ void Chip8::getKeyPress(uint16_t value){
                 this->registers[(value & 0x0F00) >> 8] = i;
             }
         }
-    }
-    
+    }  
 }
 
 void Chip8::setDelay(uint16_t value){
